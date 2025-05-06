@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public final class UtilUUID {
 	
-	private static final String UUID_DEFECTO_TEXTO = " ";
+	private static final String UUID_DEFECTO_TEXTO = "00000000-0000-0000-0000-000000000000";
 
 	private UtilUUID() {
 		super();
@@ -45,8 +45,11 @@ public final class UtilUUID {
 		return obtenerValorDefecto(valor, obtenerValorDefecto()).equals(obtenerValorDefecto());
 	}
 
-	public static boolean esValorDefecto(final String uuidComoTexto) {
+	public static boolean esValorDefectoComoTexto(final String uuidComoTexto) {
 		return obtenerValorDefecto(convertirAUUID(uuidComoTexto), obtenerValorDefecto()).equals(obtenerValorDefecto());
 	}
 	
+	public static void main(String[] args) {
+		System.out.println(UtilUUID.generarNuevoUUIDComoTexto());
+	}
 }

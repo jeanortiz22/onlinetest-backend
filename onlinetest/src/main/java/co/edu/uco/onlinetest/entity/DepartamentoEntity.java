@@ -15,8 +15,14 @@ public class DepartamentoEntity {
 	public DepartamentoEntity() {
 		setId(UtilUUID.obtenerValorDefecto());
 		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-		setPais(new PaisEntity());
+		setPais(PaisEntity.obtenerValorDefecto());
 		
+	}
+	
+	public DepartamentoEntity(final UUID id) {
+		setId(id);
+		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
+		setPais(PaisEntity.obtenerValorDefecto(pais));
 	}
 	
 	public DepartamentoEntity(final UUID id, final String nombre, final PaisEntity pais) {
@@ -25,17 +31,14 @@ public class DepartamentoEntity {
 		setPais(pais);
 		
 	}
+	
+	public static DepartamentoEntity obtenerValorDefecto() {
+		return new DepartamentoEntity();
+	}
+	
 	public static DepartamentoEntity obtenerValorDefecto(final DepartamentoEntity departamento) {
-		return UtilObjeto.getIntance().obtenerValorDefecto(departamento, new DepartamentoEntity());
+		return UtilObjeto.getIntance().obtenerValorDefecto(departamento, obtenerValorDefecto());
 	}
-	
-	
-	public DepartamentoEntity(final UUID id) {
-		setId(UtilUUID.obtenerValorDefecto());
-		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-		setPais(PaisEntity.obtenerValorDefecto(pais));
-	}
-	
 
 	public UUID getId() {
 		return id;

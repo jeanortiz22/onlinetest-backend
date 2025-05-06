@@ -15,25 +15,22 @@ public class CiudadEntity {
 	public CiudadEntity() {
 		setId(UtilUUID.obtenerValorDefecto());
 		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-		setDepartamento(new DepartamentoEntity());
+		setDepartamento(DepartamentoEntity.obtenerValorDefecto());
 		
 	}
+	
+	public CiudadEntity(final UUID id) {
+		setId(id);
+		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
+		setDepartamento(DepartamentoEntity.obtenerValorDefecto(departamento));
+	}
+	
 	
 	public CiudadEntity(final UUID id, final String nombre, final DepartamentoEntity departamento) {
 		setId(id);
 		setNombre(nombre);
 		setDepartamento(departamento);
 		
-	}
-	public static CiudadEntity obtenerValorDefecto(final CiudadEntity ciudad) {
-		return UtilObjeto.getIntance().obtenerValorDefecto(ciudad, new CiudadEntity());
-	}
-	
-	
-	public CiudadEntity(final UUID id) {
-		setId(UtilUUID.obtenerValorDefecto());
-		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-		setDepartamento(DepartamentoEntity.obtenerValorDefecto(departamento));
 	}
 	
 

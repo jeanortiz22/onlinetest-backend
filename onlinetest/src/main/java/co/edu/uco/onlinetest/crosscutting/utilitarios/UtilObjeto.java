@@ -23,4 +23,5 @@ public final class UtilObjeto {
 	public <O> O obtenerValorDefecto(final O valorOriginal, final O valorDefecto) {
 		return esNulo(valorOriginal) ? valorDefecto : valorOriginal;
 	}
+		
 }

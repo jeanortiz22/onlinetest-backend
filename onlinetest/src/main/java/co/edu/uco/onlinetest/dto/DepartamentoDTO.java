@@ -25,13 +25,18 @@ public class DepartamentoDTO {
 		setPais(pais);
 		
 	}
+
+	public static DepartamentoDTO obtenerValorDefecto() {
+		return new DepartamentoDTO();
+	}
+	
 	public static DepartamentoDTO obtenerValorDefecto(final DepartamentoDTO departamento) {
-		return UtilObjeto.getIntance().obtenerValorDefecto(departamento, new DepartamentoDTO());
+		return UtilObjeto.getIntance().obtenerValorDefecto(departamento, obtenerValorDefecto());
 	}
 	
 	
 	public DepartamentoDTO(final UUID id) {
-		setId(UtilUUID.obtenerValorDefecto());
+		setId(id);
 		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
 		setPais(PaisDTO.obtenerValorDefecto(pais));
 	}
@@ -62,9 +67,9 @@ public class DepartamentoDTO {
 		return pais;
 	}
 
-	public void setPais(final PaisDTO pais) {
+	public DepartamentoDTO setPais(final PaisDTO pais) {
 		this.pais = PaisDTO.obtenerValorDefecto(pais);
+		return this;
 	}
-	
 	
 }

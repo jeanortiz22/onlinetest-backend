@@ -17,25 +17,28 @@ public final class PaisDTO {
 		
 	}
 	
+	public PaisDTO(final UUID id) {
+		setId(id);
+		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
+	}
+	
 	public PaisDTO(final UUID id, final String nombre) {
 		setId(id);
 		setNombre(nombre);
 		
 	}
 	
-	
 	private PaisDTO (final Builder builder) {
 		setId(builder.id);
 		setNombre(builder.nombre);
-		PaisDTO(builder.id, builder.nombre);
+	}
+	
+	public static PaisDTO obtenerValorDefecto() {
+		return new PaisDTO();
 	}
 	
 	public static PaisDTO obtenerValorDefecto(final PaisDTO pais) {
-		return UtilObjeto.getIntance().obtenerValorDefecto(pais, new PaisDTO());
-	}
-	
-	public PaisDTO(final UUID id) {
-		
+		return UtilObjeto.getIntance().obtenerValorDefecto(pais, obtenerValorDefecto());
 	}
 	
 
@@ -63,20 +66,18 @@ public final class PaisDTO {
 		private UUID id;
 		private String nombre;
 		
-		public Builder id(final UUID id) {
+		public Builder id (final UUID id) {
 			this.id = id;
 			return this;
 		}
 		
-		public Builder nombre ( final String nombre) {
+		public Builder nombre (final String nombre) {
 			this.nombre = nombre;
 			return this;
 		}
 		
-		public PaisDTO crear () {
+		public PaisDTO crear() {
 			return new PaisDTO(this);
 		}
-		
 	}
-	
 }

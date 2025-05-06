@@ -17,18 +17,23 @@ public final class PaisEntity {
 		
 	}
 	
+	public PaisEntity(final UUID id) {
+		setId(id);
+		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
+	}
+	
 	public PaisEntity(final UUID id, final String nombre) {
 		setId(id);
 		setNombre(nombre);
 		
 	}
 	
-	public static PaisEntity obtenerValorDefecto(final PaisEntity pais) {
-		return UtilObjeto.getIntance().obtenerValorDefecto(pais, new PaisEntity());
+	public static PaisEntity obtenerValorDefecto() {
+		return new PaisEntity();
 	}
 	
-	public PaisEntity(final UUID id) {
-		
+	public static PaisEntity obtenerValorDefecto(final PaisEntity pais) {
+		return UtilObjeto.getIntance().obtenerValorDefecto(pais, obtenerValorDefecto());
 	}
 	
 
