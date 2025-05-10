@@ -15,7 +15,7 @@ public class DepartamentoDTO {
 	public DepartamentoDTO() {
 		setId(UtilUUID.obtenerValorDefecto());
 		setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-		setPais(new PaisDTO());
+		setPais(PaisDTO.obtenerValorDefecto());
 		
 	}
 	
