@@ -1,21 +1,22 @@
 package co.edu.uco.onlinetest.businesslogic.facade;
 
-import java.util.UUID;
+import co.edu.uco.onlinetest.dto.PaisDTO;
 
 import java.util.List;
-
-import co.edu.uco.onlinetest.businesslogic.businesslogic.domian.PaisDomain;
+import java.util.UUID;
 
 public interface PaisFacade {
-	
-	void registrarNuevoPais (PaisDomain pais);
-	
-	void modificarPaisExistente (UUID id, PaisDomain pais);
-	
-	void darBajaDefinitivamentePaisExistente (UUID id);
-	
-	PaisDomain consultarPaisPorId (UUID id);
-	
-	list <PaisDomain> consultarPaises (PaisDomain filtro);
+
+    void registrarNuevoPais(PaisDTO pais);
+
+    void modificarPaisExistente(UUID id, PaisDTO pais);
+
+    void darBajaDefinitivamentePaisExistente(UUID id);
+
+    PaisDTO consultarPaisPorId(UUID id);
+
+    List <PaisDTO> consultarPaises(PaisDTO filtro);
+
+
 
 }

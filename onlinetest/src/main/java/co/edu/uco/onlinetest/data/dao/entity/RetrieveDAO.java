@@ -4,9 +4,9 @@ import java.util.List;
 
 public interface RetrieveDAO <E, ID> {
 
-    List<E> listByFilter(E filter);
+    List <E> listByFilter (E filter);
 
-    List<E> listAll();
+    List <E> listAll ();
 
-    E ListById(ID id);
+    E listById (ID id);
 }

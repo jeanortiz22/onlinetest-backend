@@ -1,51 +1,49 @@
-package co.edu.uco.onlinetest.dto;
-
-import java.util.UUID;
+package co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain;
 
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilObjeto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 
+import java.util.UUID;
 
-public final class PaisDTO {
+
+public final class PaisDomain {
 
     private UUID id;
     private String nombre;
 
-    public PaisDTO() {
+    PaisDomain() {
         setId(UtilUUID.obtenerValorDefecto());
         setNombre(UtilTexto.getInstance().obtenerValorDefecto());
 
     }
-
-    public PaisDTO(final UUID id) {
+    public PaisDomain(final UUID id) {
         setId(id);
         setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-
     }
 
-    public PaisDTO(final UUID id, final String nombre) {
+
+    public PaisDomain(final UUID id, final String nombre) {
         setId(id);
         setNombre(nombre);
 
     }
-
-    public static PaisDTO obtenerValorDefecto() {
-        return new PaisDTO();
+    static PaisDomain obtenerValorDefecto() {
+        return new PaisDomain();
     }
 
-    public static PaisDTO obtenerValorDefecto(final PaisDTO pais) {
+    static PaisDomain obtenerValorDefecto(final PaisDomain pais) {
         return UtilObjeto.getIntance().obtenerValorDefecto(pais, obtenerValorDefecto());
     }
+
 
     public UUID getId() {
         return id;
     }
 
 
-    public PaisDTO setId( final UUID id) {
+    private void setId( final UUID id) {
         this.id = UtilUUID.obtenerValorDefecto(id);
-        return this;
     }
 
 
@@ -54,9 +52,8 @@ public final class PaisDTO {
     }
 
 
-    public PaisDTO setNombre(final String nombre) {
+    private void setNombre(final String nombre) {
         this.nombre = UtilTexto.getInstance().quitarEspacioBlancoInicioFin(nombre);
-        return this;
     }
 
 }

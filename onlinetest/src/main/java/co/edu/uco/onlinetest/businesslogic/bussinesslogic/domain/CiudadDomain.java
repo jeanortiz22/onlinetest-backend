@@ -1,25 +1,26 @@
-package co.edu.uco.onlinetest.entity;
-import java.util.UUID;
+package co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain;
 
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilObjeto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 
-public class CiudadEntity {
+import java.util.UUID;
+
+public class CiudadDomain {
 
 
     private UUID id;
     private String nombre;
-    private DepartamentoEntity departamento;
+    private DepartamentoDomain departamento;
 
-    public CiudadEntity() {
+    CiudadDomain() {
         setId(UtilUUID.obtenerValorDefecto());
         setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-        setDepartamento(DepartamentoEntity.obtenerValorDefecto());
+        setDepartamento(DepartamentoDomain.obtenerValorDefecto());
 
     }
 
-    public CiudadEntity(final UUID id, final String nombre, final DepartamentoEntity departamento) {
+    public CiudadDomain(final UUID id, final String nombre, final DepartamentoDomain departamento) {
         setId(id);
         setNombre(nombre);
         setDepartamento(departamento);
@@ -27,18 +28,18 @@ public class CiudadEntity {
     }
 
 
-    public static CiudadEntity obtenerValorDefecto() {
-        return new CiudadEntity();
+    static CiudadDomain obtenerValorDefecto() {
+        return new CiudadDomain();
     }
-    public static CiudadEntity obtenerValorDefecto(final CiudadEntity ciudad) {
+    static CiudadDomain obtenerValorDefecto(final CiudadDomain ciudad) {
         return UtilObjeto.getIntance().obtenerValorDefecto(ciudad, obtenerValorDefecto());
     }
 
 
-    public CiudadEntity(final UUID id) {
+    public CiudadDomain(final UUID id) {
         setId(id);
         setNombre(UtilTexto.getInstance().obtenerValorDefecto());
-        setDepartamento(DepartamentoEntity.obtenerValorDefecto());
+        setDepartamento(DepartamentoDomain.obtenerValorDefecto());
     }
 
 
@@ -47,7 +48,7 @@ public class CiudadEntity {
     }
 
 
-    public void setId( final UUID id) {
+    private void setId( final UUID id) {
         this.id = UtilUUID.obtenerValorDefecto(id);
     }
 
@@ -57,17 +58,16 @@ public class CiudadEntity {
     }
 
 
-    public void setNombre(final String nombre) {
+    private void setNombre(final String nombre) {
         this.nombre = UtilTexto.getInstance().quitarEspacioBlancoInicioFin(nombre);
     }
 
-    public DepartamentoEntity getDepartamento() {
+    public DepartamentoDomain getDepartamento() {
         return departamento;
     }
 
-    public void setDepartamento(final DepartamentoEntity departamento) {
-        this.departamento = DepartamentoEntity.obtenerValorDefecto(departamento);
+    private void setDepartamento(final DepartamentoDomain departamento) {
+        this.departamento = DepartamentoDomain.obtenerValorDefecto(departamento);
     }
-
 
 }
