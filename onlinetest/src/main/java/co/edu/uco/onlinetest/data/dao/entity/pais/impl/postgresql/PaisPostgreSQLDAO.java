@@ -7,7 +7,9 @@ import co.edu.uco.onlinetest.data.dao.entity.pais.PaisDAO;
 import co.edu.uco.onlinetest.entity.PaisEntity;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,53 +75,122 @@ public class PaisPostgreSQLDAO implements PaisDAO {
             throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
     }
-
     @Override
-    public List<PaisEntity> listByFilter(PaisEntity filter) {
-        return null;
+    public List<PaisEntity> listByFilter(PaisEntity entity) throws OnlineTestException {
+        var listaPaises = new ArrayList<PaisEntity>();
+        var sentenciaSQL = new StringBuilder();
+
+        sentenciaSQL.append("SELECT id, nombre FROM pais WHERE 1=1");
+
+
+        boolean filtrarPorId = entity.getId() != null;
+        boolean filtrarPorNombre = esCadenaValida(entity.getNombre());
+
+        if (filtrarPorId) {
+            sentenciaSQL.append(" AND id = ?");
+        }
+        if (filtrarPorNombre) {
+            sentenciaSQL.append(" AND nombre LIKE ?");
+        }
+
+        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+            int index = 1;
+
+            if (filtrarPorId) {
+                sentenciaPreparada.setObject(index++, entity.getId());
+            }
+            if (filtrarPorNombre) {
+                sentenciaPreparada.setString(index++, "%" + entity.getNombre().trim() + "%");
+            }
+
+            try (var cursorResultados = sentenciaPreparada.executeQuery()) {
+                while (cursorResultados.next()) {
+                    listaPaises.add(construirPaisDesdeResultado(cursorResultados));
+                }
+            }
+
+        } catch (SQLException exception) {
+            var mensajeUsuario = "Se ha presentado un problema tratando de consultar la información del país con los filtros deseados...";
+            var mensajeTecnico = "Se presentó una excepción de tipo SQLException tratando de hacer SELECT en la tabla Pais por ID...";
+            throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
+
+        } catch (Exception exception) {
+            var mensajeUsuario = "Se ha presentado un problema INESPERADO tratando de consultar la información del país...";
+            var mensajeTecnico = "Se presentó una excepción NO CONTROLADA tratando de hacer SELECT en la tabla Pais por ID...";
+            throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
+        }
+
+        return listaPaises;
     }
 
+
     @Override
-    public List<PaisEntity> listAll() {
-        return null;
+    public List<PaisEntity> listAll() throws OnlineTestException {
+        var listaPaises = new ArrayList<PaisEntity>();
+        var sentenciaSQL = new StringBuilder();
+
+        sentenciaSQL.append("SELECT id, nombre FROM Pais");
+
+
+        try (
+                var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+                var cursorResultados = sentenciaPreparada.executeQuery()
+        ) {
+            while (cursorResultados.next()) {
+                listaPaises.add(construirPaisDesdeResultado(cursorResultados));
+            }
+
+        } catch (SQLException exception) {
+            var mensajeUsuario = "Se ha presentado un problema tratando de consultar la información de los paises deseados...";
+            var mensajeTecnico = "Se presentó una excepción de tipo SQLException tratando de hacer SELECT en la tabla Pais.";
+            throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
+
+        } catch (Exception exception) {
+            var mensajeUsuario = "Se ha presentado un problema INESPERADO tratando de consultar la información del países deseados...";
+            var mensajeTecnico = "Se presentó una excepción NO CONTROLADA tratando de hacer SELECT en la tabla Pais...";
+            throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
+        }
+
+        return listaPaises;
     }
+
 
     @Override
     public PaisEntity listById(UUID id) throws OnlineTestException {
 
-        var paisEntityRetorno = new PaisEntity();
+        var paisEntityRetorno = new PaisEntity(); // O usar null si prefieres retornar null si no se encuentra
         var sentenciaSQL = new StringBuilder();
+        sentenciaSQL.append("SELECT id, nombre FROM Pais WHERE id=?");
 
-        sentenciaSQL.append("SELECT id, nombre FROM pais WHERE id = ?");
-
-        try (
-                var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
 
             sentenciaPreparada.setObject(1, id);
 
-            try (
-                    var cursorResultado = sentenciaPreparada.executeQuery()) {
+            try (var cursorResultados = sentenciaPreparada.executeQuery()) {
+                boolean encontrado = false;
 
-                if (cursorResultado.next()) {
-                    paisEntityRetorno.setId(UtilUUID.convertirAUUID(cursorResultado.getString("id")));
-                    paisEntityRetorno.setNombre(cursorResultado.getString("nombre"));
+                while (cursorResultados.next()) {
+                    if (!encontrado) {
+                        paisEntityRetorno.setId(UtilUUID.convertirAUUID(cursorResultados.getString("id")));
+                        paisEntityRetorno.setNombre(cursorResultados.getString("nombre"));
+                        encontrado = true;
+                    } else {
+                        // Si se encuentra más de un país con el mismo ID, puede lanzarse una excepción
+                        var mensajeUsuario = "Se encontró un problema con la información del país solicitado...";
+                        var mensajeTecnico = "Se encontraron múltiples países con el mismo ID, lo cual es inválido...";
+                        throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico);
+                    }
                 }
-
             }
 
-        }
-
-        catch (SQLException exception) {
-            var mensajeUsuario = "Se ha presentado un problema tratando de consultar la información de un nuevo pais...";
-            var mensajeTecnico = "Se presento un excepción de tipo SQLException tratando de hacer un SELECT en la tabla pais...";
-
+        } catch (SQLException exception) {
+            var mensajeUsuario = "Se ha presentado un problema tratando de consultar la información del país con el identificador deseado...";
+            var mensajeTecnico = "Se presentó una excepción de tipo SQLException tratando de hacer SELECT en la tabla Pais por ID.";
             throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
-        }
 
-        catch (Exception exception) {
-            var mensajeUsuario = "Se ha presentado un problema INESPERADO tratando de consultar la información de un nuevo pais...";
-            var mensajeTecnico = "Se presento un excepción NO CONTROLADA de tipo Exception tratando de hacer un SELECT en la tabla pais...";
-
+        } catch (Exception exception) {
+            var mensajeUsuario = "Se ha presentado un problema INESPERADO tratando de consultar la información del país...";
+            var mensajeTecnico = "Se presentó una excepción NO CONTROLADA tratando de hacer SELECT en la tabla Pais por ID...";
             throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
 
@@ -128,7 +199,7 @@ public class PaisPostgreSQLDAO implements PaisDAO {
 
 
 
-    @Override
+        @Override
     public void updateById(UUID id, PaisEntity entity) throws OnlineTestException {
         var sentenciaSQL = new StringBuilder();
 
@@ -155,6 +226,18 @@ public class PaisPostgreSQLDAO implements PaisDAO {
             throw  DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
 
+    }
+
+    private PaisEntity construirPaisDesdeResultado(ResultSet resultado) throws SQLException {
+        var pais = new PaisEntity();
+        pais.setId(UtilUUID.convertirAUUID(resultado.getString("id")));
+        pais.setNombre(resultado.getString("nombre"));
+        return pais;
+    }
+
+
+    private boolean esCadenaValida(String cadena) {
+        return cadena != null && !cadena.isBlank();
     }
 }
 

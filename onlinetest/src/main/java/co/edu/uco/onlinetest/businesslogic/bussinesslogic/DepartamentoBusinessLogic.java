@@ -14,9 +14,9 @@ public interface DepartamentoBusinessLogic {
 
         void darBajaDefinitivamenteDepartamentoExistente(UUID id) throws OnlineTestException;
 
-        DepartamentoDomain consultarDepartamentoPorId(UUID id)throws OnlineTestException;
+        DepartamentoDomain consultarDepartamentoPorId(UUID id) throws OnlineTestException;
 
-        List<DepartamentoDomain> consultarDepartamento(DepartamentoDomain filtro)throws OnlineTestException;
+        List<DepartamentoDomain> consultarDepartamento(DepartamentoDomain filtro) throws OnlineTestException;
 
 }
 
