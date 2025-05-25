@@ -1,9 +1,8 @@
 package co.edu.uco.onlinetest.businesslogic.facade.impl;
 
-import co.edu.uco.onlinetest.businesslogic.assembler.DepartamentoAssembler;
+import co.edu.uco.onlinetest.businesslogic.assembler.pais.dto.DepartamentoDTOAssembler;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.DepartamentoBusinessLogic;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.DepartamentoDomain;
-import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.PaisDomain;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.impl.DepartamentoBusinessLogicImpl;
 import co.edu.uco.onlinetest.businesslogic.facade.DepartamentoFacade;
 import co.edu.uco.onlinetest.crosscutting.excepciones.BusinessLogicOnlineTestException;
@@ -11,21 +10,29 @@ import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
 import co.edu.uco.onlinetest.data.dao.factory.DAOFactory;
 import co.edu.uco.onlinetest.data.dao.factory.Factory;
 import co.edu.uco.onlinetest.dto.DepartamentoDTO;
-import co.edu.uco.onlinetest.dto.PaisDTO;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.UUID;
 
+@Service
 public class DepartamentoFacadeImpl implements DepartamentoFacade {
 
+
+    private final DataSource dataSource;
     private DAOFactory daoFactory;
     private  DepartamentoBusinessLogic departamentoBusinessLogic;
 
-    public DepartamentoFacadeImpl() throws OnlineTestException {
-        this.daoFactory = DAOFactory.getFactory(Factory.POSTGRE_SQL);
-        this.departamentoBusinessLogic = new DepartamentoBusinessLogicImpl(daoFactory);
+    public DepartamentoFacadeImpl(DataSource dataSource) throws OnlineTestException {
+        this.dataSource = dataSource;
+        try {
+            DAOFactory.setDataSource(dataSource);
+            daoFactory = DAOFactory.getFactory(Factory.POSTGRE_SQL);
+            this.departamentoBusinessLogic = new DepartamentoBusinessLogicImpl(daoFactory);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Error inicializando DAOFactory en DepartamentoFacadeImpl", exception);
+        }
     }
 
 
@@ -35,7 +42,7 @@ public class DepartamentoFacadeImpl implements DepartamentoFacade {
 
             daoFactory.iniciarTransacion();
 
-            DepartamentoDomain departamentoDomain = DepartamentoAssembler.toDomain(departamento);
+            var departamentoDomain = DepartamentoDTOAssembler.getInstance().toDomain(departamento);
 
             departamentoBusinessLogic.registrarNuevoDepartamento(departamentoDomain);
 
@@ -63,7 +70,7 @@ public class DepartamentoFacadeImpl implements DepartamentoFacade {
         try {
             daoFactory.iniciarTransacion();
             // Convertir manualmente de DTO a Domain
-            DepartamentoDomain departamentoDomain = DepartamentoAssembler.toDomain(departamento);
+            DepartamentoDomain departamentoDomain = DepartamentoDTOAssembler.getInstance().toDomain(departamento);
 
             // Modificar el dominio
             departamentoBusinessLogic.modificarDepartamentoExistente(id, departamentoDomain);
@@ -121,11 +128,8 @@ public class DepartamentoFacadeImpl implements DepartamentoFacade {
             //consultar el dominio
             DepartamentoDomain departamentoDomainResultado = departamentoBusinessLogic.consultarDepartamentoPorId(id);
 
-            if (departamentoDomainResultado == null) {
-                return null;
-            }
             // Convertir de Domain a DTO
-            DepartamentoDTO departamentoDTOResultado = DepartamentoAssembler.toDTO(departamentoDomainResultado);
+            DepartamentoDTO departamentoDTOResultado = DepartamentoDTOAssembler.getInstance().toDTO(departamentoDomainResultado);
             daoFactory.confirmarTransacion();
 
             return departamentoDTOResultado;
@@ -153,21 +157,17 @@ public class DepartamentoFacadeImpl implements DepartamentoFacade {
             daoFactory.iniciarTransacion();
 
             // Convertir manualmente de DTO a Domain (para filtro)
-            DepartamentoDomain filtroDomain = DepartamentoAssembler.toDomain(filtro);
+            var filtroDomain = DepartamentoDTOAssembler.getInstance().toDomain(filtro);
 
             // Consultar la lista de dominios
-            List<DepartamentoDomain> dominios = departamentoBusinessLogic.consultarDepartamento(filtroDomain);
+            var dominios = departamentoBusinessLogic.consultarDepartamento(filtroDomain);
 
-            // Convertir manualmente lista de Domain a lista de DTO
-            List<DepartamentoDTO> dtos = new ArrayList<>();
-            if (dominios != null) {
-                for (DepartamentoDomain domain : dominios) {
-                    dtos.add(DepartamentoAssembler.toDTO(domain));
-                }
-            }
+            var dominiosResultado = DepartamentoDTOAssembler.getInstance().toDTO(dominios);
+
+
             daoFactory.confirmarTransacion();
 
-            return dtos;
+            return dominiosResultado;
 
         } catch (OnlineTestException exception) {
             daoFactory.cancelarTransacion();

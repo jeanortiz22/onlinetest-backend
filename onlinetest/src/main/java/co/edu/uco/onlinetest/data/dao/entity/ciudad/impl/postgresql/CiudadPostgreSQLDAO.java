@@ -2,12 +2,15 @@ package co.edu.uco.onlinetest.data.dao.entity.ciudad.impl.postgresql;
 
 import co.edu.uco.onlinetest.crosscutting.excepciones.DataOnlineTestException;
 import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
+import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.onlinetest.data.dao.entity.ciudad.CiudadDAO;
 import co.edu.uco.onlinetest.entity.CiudadEntity;
 import co.edu.uco.onlinetest.entity.DepartamentoEntity;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -16,10 +19,10 @@ import java.util.UUID;
 
 public class CiudadPostgreSQLDAO implements CiudadDAO {
 
-    private Connection conexion;
+    private final DataSource dataSource;
 
-    public CiudadPostgreSQLDAO(Connection conexion) {
-        this.conexion = conexion;
+    public CiudadPostgreSQLDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     @Override
@@ -27,7 +30,10 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("INSERT INTO ciudad (id, nombre, departamento_id) VALUES (?, ?, ?)");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             sentenciaPreparada.setObject(1, entity.getId());
             sentenciaPreparada.setString(2, entity.getNombre());
             sentenciaPreparada.setObject(3, entity.getDepartamento().getId());
@@ -51,7 +57,10 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("DELETE FROM ciudad WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             sentenciaPreparada.setObject(1, id);
             sentenciaPreparada.executeUpdate();
 
@@ -73,12 +82,17 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre, departamento_id FROM ciudad WHERE 1=1");
 
-        boolean filtrarPorId = entity != null && entity.getId() != null;
-        boolean filtrarPorNombre = entity != null && entity.getNombre() != null && !entity.getNombre().isBlank();
-        boolean filtrarPorDepartamento = entity != null && entity.getDepartamento() != null && entity.getDepartamento().getId() != null;
+        boolean filtrarPorId = entity != null
+                && !UtilUUID.esValorDefecto(entity.getId());
+        boolean filtrarPorNombre = entity != null
+                && !UtilTexto.getInstance().estaVacia(entity.getNombre());
+        // <-- aquí va la corrección:
+        boolean filtrarPorDepartamento = entity != null
+                && entity.getDepartamento() != null
+                && !UtilUUID.esValorDefecto(entity.getDepartamento().getId());
 
         if (filtrarPorId) {
-            sentenciaSQL.append(" AND id = ?");
+            sentenciaSQL.append(" AND LOWER (nombre)  LIKE LOWER (?)");
         }
         if (filtrarPorNombre) {
             sentenciaSQL.append(" AND nombre LIKE ?");
@@ -87,7 +101,10 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
             sentenciaSQL.append(" AND departamento_id = ?");
         }
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             int index = 1;
             if (filtrarPorId) {
                 sentenciaPreparada.setObject(index++, entity.getId());
@@ -125,8 +142,11 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre, departamento_id FROM ciudad");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
-             var resultado = sentenciaPreparada.executeQuery()) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
+            var resultado = sentenciaPreparada.executeQuery();
 
             while (resultado.next()) {
                 listaCiudades.add(construirCiudadDesdeResultado(resultado));
@@ -152,7 +172,10 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre, departamento_id FROM ciudad WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             sentenciaPreparada.setObject(1, id);
 
             try (var resultado = sentenciaPreparada.executeQuery()) {
@@ -175,12 +198,16 @@ public class CiudadPostgreSQLDAO implements CiudadDAO {
         return ciudadEntityRetorno;
     }
 
+    
     @Override
     public void updateById(UUID id, CiudadEntity entity) throws OnlineTestException {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("UPDATE ciudad SET nombre = ?, departamento_id = ? WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            PreparedStatement sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             sentenciaPreparada.setString(1, entity.getNombre());
             sentenciaPreparada.setObject(2, entity.getDepartamento().getId());
             sentenciaPreparada.setObject(3, id);

@@ -8,7 +8,7 @@ public final class UtilObjeto {
 
     }
 
-    public static synchronized UtilObjeto getIntance() {
+    public static synchronized UtilObjeto getIntance(){
 
         if (instancia == null) {
             instancia = new UtilObjeto();

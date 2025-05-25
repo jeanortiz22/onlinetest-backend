@@ -2,11 +2,13 @@ package co.edu.uco.onlinetest.data.dao.entity.departamento.impl.postgresql;
 
 import co.edu.uco.onlinetest.crosscutting.excepciones.DataOnlineTestException;
 import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
+import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.onlinetest.data.dao.entity.departamento.DepartamentoDAO;
 import co.edu.uco.onlinetest.entity.DepartamentoEntity;
 import co.edu.uco.onlinetest.entity.PaisEntity;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,10 +18,10 @@ import java.util.UUID;
 
 public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
 
-    private Connection conexion;
+    private final DataSource dataSource;
 
-    public DepartamentoPostgreSQLDAO(Connection conexion) {
-        this.conexion = conexion;
+    public DepartamentoPostgreSQLDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     @Override
@@ -27,7 +29,9 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("INSERT INTO departamento (id, nombre, pais_id) VALUES (?, ?, ?)");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
             sentenciaPreparada.setObject(1, entity.getId());
             sentenciaPreparada.setString(2, entity.getNombre());
             sentenciaPreparada.setObject(3, entity.getPais().getId());
@@ -51,8 +55,11 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("DELETE FROM departamento WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try (Connection conexion = dataSource.getConnection();
+             var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+
             sentenciaPreparada.setObject(1, id);
+
             sentenciaPreparada.executeUpdate();
 
         } catch (SQLException exception) {
@@ -73,21 +80,28 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre, pais_id FROM departamento WHERE 1=1");
 
-        boolean filtrarPorId = entity != null && entity.getId() != null;
-        boolean filtrarPorNombre = entity != null && entity.getNombre() != null && !entity.getNombre().isBlank();
-        boolean filtrarPorPais = entity != null && entity.getPais() != null && entity.getPais().getId() != null;
+        boolean filtrarPorId = entity != null
+                && !UtilUUID.esValorDefecto(entity.getId());
+        boolean filtrarPorNombre = entity != null
+                && !UtilTexto.getInstance().estaVacia(entity.getNombre());
+        // <-- aquí va la corrección:
+        boolean filtrarPorPais = entity != null
+                && entity.getPais() != null
+                && !UtilUUID.esValorDefecto(entity.getPais().getId());
 
         if (filtrarPorId) {
             sentenciaSQL.append(" AND id = ?");
         }
         if (filtrarPorNombre) {
-            sentenciaSQL.append(" AND nombre LIKE ?");
+            sentenciaSQL.append(" AND LOWER (nombre)  LIKE LOWER (?)");
         }
         if (filtrarPorPais) {
             sentenciaSQL.append(" AND pais_id = ?");
         }
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try ( Connection conexion = dataSource.getConnection();
+              var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+
             int index = 1;
             if (filtrarPorId) {
                 sentenciaPreparada.setObject(index++, entity.getId());
@@ -124,9 +138,10 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
     public List<DepartamentoEntity> listAll() throws OnlineTestException {
         var listaDepartamentos = new ArrayList<DepartamentoEntity>();
         var sentenciaSQL = new StringBuilder();
-        sentenciaSQL.append("SELECT id, nombre, pais FROM departamento");
+        sentenciaSQL.append("SELECT id, nombre, pais_id FROM departamento");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+        try ( Connection conexion = dataSource.getConnection();
+              var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
              var resultado = sentenciaPreparada.executeQuery()) {
 
             while (resultado.next()) {
@@ -162,7 +177,9 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre, pais_id FROM departamento WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
 
             sentenciaPreparada.setObject(1, id);
 
@@ -173,7 +190,7 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
                     departamentoEntityRetorno.setNombre(cursorResultados.getString("nombre"));
 
                     var pais = new PaisEntity();
-                    pais.setId(UtilUUID.convertirAUUID(cursorResultados.getString("pais")));
+                    pais.setId(UtilUUID.convertirAUUID(cursorResultados.getString("pais_id")));
                     departamentoEntityRetorno.setPais(pais);
                 }
             }
@@ -197,7 +214,10 @@ public class DepartamentoPostgreSQLDAO implements DepartamentoDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("UPDATE departamento SET nombre = ?, pais_id = ? WHERE id = ?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try {
+            Connection conexion = dataSource.getConnection();
+            var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
+
             sentenciaPreparada.setString(1, entity.getNombre());
             sentenciaPreparada.setObject(2, entity.getPais().getId());
             sentenciaPreparada.setObject(3, id);

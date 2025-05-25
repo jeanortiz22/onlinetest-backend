@@ -1,16 +1,15 @@
 package co.edu.uco.onlinetest.businesslogic.bussinesslogic.impl;
 
+import co.edu.uco.onlinetest.businesslogic.assembler.pais.entity.CiudadEntityAssembler;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.CiudadBusinessLogic;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.CiudadDomain;
-import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.DepartamentoDomain;
-import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.PaisDomain;
-import co.edu.uco.onlinetest.businesslogic.mapper.CiudadMapper;
-import co.edu.uco.onlinetest.businesslogic.mapper.DepartamentoMapper;
+import co.edu.uco.onlinetest.crosscutting.excepciones.BusinessLogicOnlineTestException;
 import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
+import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
+import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.onlinetest.data.dao.factory.DAOFactory;
 import co.edu.uco.onlinetest.entity.CiudadEntity;
-import co.edu.uco.onlinetest.entity.DepartamentoEntity;
-import co.edu.uco.onlinetest.entity.PaisEntity;
+
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -27,46 +26,92 @@ public class CiudadBusinessLogicImpl implements CiudadBusinessLogic {
 
     @Override
     public void registrarNuevoCiudad(CiudadDomain ciudad) throws OnlineTestException {
-        CiudadEntity ciudadEntity = CiudadMapper.toEntity(ciudad); //  magia de traducir de domain a entity
+        validarIntegridadInformacionRegistrarNuevaCiudad(ciudad);
+        validarNoExistaCiudadConMismoNombre(ciudad.getNombre());
+
+        var id = generarIdentificadorNuevaCiudad();
+        var ciudadDomainACrear = new CiudadDomain(id, ciudad.getNombre(), ciudad.getDepartamento());
+
+        var ciudadEntity = CiudadEntityAssembler.getInstance().toEntity(ciudadDomainACrear);
         factory.getCiudadDAO().create(ciudadEntity);
+    }
+
+    private void validarIntegridadInformacionRegistrarNuevaCiudad(CiudadDomain ciudad) throws OnlineTestException {
+        var nombre = ciudad.getNombre();
+        if (UtilTexto.getInstance().estaVacia(nombre)) {
+            throw BusinessLogicOnlineTestException.reportar("El nombre de la ciudad es obligatorio...");
+        }
+
+        if (!UtilTexto.getInstance().contieneSoloLetrasEspacios(nombre)) {
+            throw BusinessLogicOnlineTestException.reportar("El nombre de la ciudad solo puede contener letras...");
+        }
+
+        if (!UtilTexto.getInstance().longitudValida(nombre, 1, 50)) {
+            throw BusinessLogicOnlineTestException.reportar("El nombre de la ciudad supera los 50 caracteres...");
+        }
+    }
+
+    private void validarNoExistaCiudadConMismoNombre(String nombreCiudad) throws OnlineTestException {
+        var filtro = new CiudadEntity();
+        filtro.setNombre(nombreCiudad);
+
+        var listaResultados = factory.getCiudadDAO().listByFilter(filtro);
+
+        if (!listaResultados.isEmpty()) {
+            throw BusinessLogicOnlineTestException.reportar("Ya existe una ciudad con el nombre: " + nombreCiudad + "...");
+        }
+    }
+
+    private UUID generarIdentificadorNuevaCiudad() throws OnlineTestException {
+        UUID nuevoId;
+        var existeId = false;
+
+        do {
+            nuevoId = UtilUUID.generarNuevoUUID();
+            var ciudad = factory.getCiudadDAO().listById(nuevoId);
+            existeId = !UtilUUID.esValorDefecto(ciudad.getId());
+        } while (existeId);
+
+        return nuevoId;
     }
 
     @Override
     public void modificarCiudadExistente(UUID id, CiudadDomain ciudad) throws OnlineTestException {
-        CiudadEntity ciudadEntity = CiudadMapper.toEntity(ciudad);
-        factory.getCiudadDAO().updateById(id,ciudadEntity);
+        var ciudadExistente = factory.getCiudadDAO().listById(id);
+        if (UtilUUID.esValorDefecto(ciudadExistente.getId())) {
+            throw BusinessLogicOnlineTestException.reportar("La ciudad con id: " + id + " no existe...");
+        }
+
+        validarIntegridadInformacionRegistrarNuevaCiudad(ciudad);
+
+        CiudadEntity ciudadEntity = CiudadEntityAssembler.getInstance().toEntity(ciudad);
+        factory.getCiudadDAO().updateById(id, ciudadEntity);
     }
 
     @Override
-    public void darBajaDefinitivamenteCiudadExistente(UUID id) throws OnlineTestException{
+    public void darBajaDefinitivamenteCiudadExistente(UUID id) throws OnlineTestException {
+        var ciudadExistente = factory.getCiudadDAO().listById(id);
+        if (UtilUUID.esValorDefecto(ciudadExistente.getId())) {
+            throw BusinessLogicOnlineTestException.reportar("La ciudad con id: " + id + " no existe...");
+        }
+
         factory.getCiudadDAO().delete(id);
     }
 
     @Override
-    public CiudadDomain consultarCiudadPorId(UUID id) throws OnlineTestException{
-        CiudadEntity entity = factory.getCiudadDAO().listById(id);
-
-        if (entity == null) {
-            return null;
-        }
-
-        return CiudadMapper.toDomain(entity);
+    public CiudadDomain consultarCiudadPorId(UUID id) throws OnlineTestException {
+        var ciudadEntity = factory.getCiudadDAO().listById(id);
+        return CiudadEntityAssembler.getInstance().toDomain(ciudadEntity);
     }
 
+
     @Override
-    public List<CiudadDomain> consultarCiudad(CiudadDomain filtro) throws OnlineTestException{
-        CiudadEntity ciudadFilter = filtro == null ? null : CiudadMapper.toEntity(filtro);
+    public List<CiudadDomain> consultarCiudad(CiudadDomain filtro) throws OnlineTestException {
+        var ciudadFiltro = CiudadEntityAssembler.getInstance().toEntity(filtro);
 
-        List<CiudadEntity> ciudadEntities = factory.getCiudadDAO().listByFilter(ciudadFilter);
-        List<CiudadDomain> datosARetornar = new ArrayList<>();
+        System.out.println("filtro: " + ciudadFiltro.getNombre());
+        List<CiudadEntity> ciudadEntities = factory.getCiudadDAO().listByFilter(ciudadFiltro);
 
-        if (ciudadEntities != null) {
-            Iterator<CiudadEntity> iterador = ciudadEntities.iterator();
-            while (iterador.hasNext()) {
-                CiudadEntity entity = iterador.next();
-                datosARetornar.add(CiudadMapper.toDomain(entity));
-            }
-        }
-        return datosARetornar;
+        return CiudadEntityAssembler.getInstance().toDomain(ciudadEntities);
     }
 }

@@ -9,31 +9,41 @@ import co.edu.uco.onlinetest.data.dao.entity.departamento.impl.postgresql.Depart
 import co.edu.uco.onlinetest.data.dao.entity.pais.PaisDAO;
 import co.edu.uco.onlinetest.data.dao.entity.pais.impl.postgresql.PaisPostgreSQLDAO;
 import co.edu.uco.onlinetest.data.dao.factory.DAOFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
+@Component
 public class PostgreSQLDAOFactory extends DAOFactory {
 
+    private final DataSource dataSource;
     private Connection conexion;
     private boolean transaccionEstaIniciada;
     private boolean conexionEstaAbierta;
 
-    public PostgreSQLDAOFactory() throws OnlineTestException {
-        abrirConexion();
+
+    @Autowired
+    public PostgreSQLDAOFactory(DataSource dataSource) throws OnlineTestException {
+        this.dataSource = dataSource;
         transaccionEstaIniciada = false;
         conexionEstaAbierta = false;
+        abrirConexion();
+
     }
+
+
 
     @Override
     protected void abrirConexion() throws OnlineTestException {
 
-        var baseDatos = "ONLINETESTDB";
+        var baseDatos = "ONLINETEST_DB";
         var servidor = "";
 
         try {
-            DriverManager.getConnection("");
+            conexion = dataSource.getConnection();
             conexionEstaAbierta = true;
         }
         catch (SQLException exception) {
@@ -121,6 +131,7 @@ public class PostgreSQLDAOFactory extends DAOFactory {
         try {
             asegurarConexionAbierta();
             conexion.close();
+            conexionEstaAbierta = false;
         }
         catch (OnlineTestException exception) {
             throw exception;
@@ -138,8 +149,9 @@ public class PostgreSQLDAOFactory extends DAOFactory {
         }
     }
 
-    private void asegurarTransaccionIniciada() throws OnlineTestException {
+    private void asegurarTransaccionIniciada() throws OnlineTestException, SQLException {
         if (!transaccionEstaIniciada) {
+            abrirConexion();
             var mensajeUsuario = "Se ha presentado un problema tratando de gestionar la transacción  con la fuente de datos para llevar a cabo la operación deseada...";
             var mensajeTecnico = "Se intento gestionar(COMMIT/ROLLBACK) una transacción que no ha sido iniciada.";
 
@@ -148,7 +160,11 @@ public class PostgreSQLDAOFactory extends DAOFactory {
     }
 
     private void asegurarConexionAbierta() throws OnlineTestException {
-        if (!conexionEstaAbierta) {
+        try {
+            if (conexion == null || conexion.isClosed()) {
+                conexion = dataSource.getConnection();
+            }
+        } catch ( SQLException exception) {
             var mensajeUsuario = "Se ha presentado un problema tratando de llevar a cabo la operación deseada con una conexión cerrada...";
             var mensajeTecnico = "Se intento llevar a cabo una operación que requería una conexión abierta, pero al momento de validar la conexión estaba cerrada.";
 
@@ -159,18 +175,19 @@ public class PostgreSQLDAOFactory extends DAOFactory {
     @Override
     public PaisDAO getPaisDAO() throws OnlineTestException {
         asegurarConexionAbierta();
-        return new PaisPostgreSQLDAO(conexion);
+        return new PaisPostgreSQLDAO(dataSource);
     }
 
     @Override
     public DepartamentoDAO getDepartamentoDAO() throws OnlineTestException {
         asegurarConexionAbierta();
-        return new DepartamentoPostgreSQLDAO(conexion);
+        return new DepartamentoPostgreSQLDAO( dataSource);
     }
 
     @Override
     public CiudadDAO getCiudadDAO() throws OnlineTestException{
         asegurarConexionAbierta();
-        return new CiudadPostgreSQLDAO(conexion);
+        return new CiudadPostgreSQLDAO(dataSource);
     }
+
 }

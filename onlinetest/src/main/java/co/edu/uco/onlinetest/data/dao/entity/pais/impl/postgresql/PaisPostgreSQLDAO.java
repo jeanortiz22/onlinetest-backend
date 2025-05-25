@@ -2,10 +2,12 @@ package co.edu.uco.onlinetest.data.dao.entity.pais.impl.postgresql;
 
 import co.edu.uco.onlinetest.crosscutting.excepciones.DataOnlineTestException;
 import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
+import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilTexto;
 import co.edu.uco.onlinetest.crosscutting.utilitarios.UtilUUID;
 import co.edu.uco.onlinetest.data.dao.entity.pais.PaisDAO;
 import co.edu.uco.onlinetest.entity.PaisEntity;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,10 +17,10 @@ import java.util.UUID;
 
 public class PaisPostgreSQLDAO implements PaisDAO {
 
-    private Connection conexion;
+    private final DataSource dataSource;
 
-    public PaisPostgreSQLDAO(Connection conexion) {
-        this.conexion = conexion;
+    public PaisPostgreSQLDAO(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     @Override
@@ -28,6 +30,7 @@ public class PaisPostgreSQLDAO implements PaisDAO {
         sentenciaSQL.append("INSERT INTO pais (id, nombre) VALUES (?,?)");
 
         try {
+            Connection conexion = dataSource.getConnection();
             var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
 
             sentenciaPreparada.setObject(1, entity.getId());
@@ -56,7 +59,7 @@ public class PaisPostgreSQLDAO implements PaisDAO {
 
         sentenciaSQL.append("DELETE FROM pais WHERE id = ?");
 
-        try (
+        try (Connection conexion = dataSource.getConnection();
             var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
 
             sentenciaPreparada.setObject(1, id);
@@ -76,36 +79,37 @@ public class PaisPostgreSQLDAO implements PaisDAO {
         }
     }
     @Override
-    public List<PaisEntity> listByFilter(PaisEntity entity) throws OnlineTestException {
-        var listaPaises = new ArrayList<PaisEntity>();
+    public List<PaisEntity> listByFilter(PaisEntity filter) throws OnlineTestException {
+        var listaResultados = new ArrayList<PaisEntity>();
         var sentenciaSQL = new StringBuilder();
 
         sentenciaSQL.append("SELECT id, nombre FROM pais WHERE 1=1");
 
-
-        boolean filtrarPorId = entity.getId() != null;
-        boolean filtrarPorNombre = esCadenaValida(entity.getNombre());
+        boolean filtrarPorId = !UtilUUID.esValorDefecto(filter.getId());
+        boolean filtrarPorNombre = !UtilTexto.getInstance().esValorDefecto(filter.getNombre());
 
         if (filtrarPorId) {
             sentenciaSQL.append(" AND id = ?");
         }
         if (filtrarPorNombre) {
-            sentenciaSQL.append(" AND nombre LIKE ?");
+            sentenciaSQL.append(" AND LOWER(nombre) LIKE LOWER(?)");
         }
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
-            int index = 1;
+        try (
+                Connection conexion = dataSource.getConnection();
+                var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
 
+            int index = 1;
             if (filtrarPorId) {
-                sentenciaPreparada.setObject(index++, entity.getId());
+                sentenciaPreparada.setObject(index++, filter.getId());
             }
             if (filtrarPorNombre) {
-                sentenciaPreparada.setString(index++, "%" + entity.getNombre().trim() + "%");
+                sentenciaPreparada.setString(index++, "%" + filter.getNombre().trim().toLowerCase() + "%");
             }
 
             try (var cursorResultados = sentenciaPreparada.executeQuery()) {
                 while (cursorResultados.next()) {
-                    listaPaises.add(construirPaisDesdeResultado(cursorResultados));
+                    listaResultados.add(construirPaisDesdeResultado(cursorResultados));
                 }
             }
 
@@ -120,24 +124,30 @@ public class PaisPostgreSQLDAO implements PaisDAO {
             throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
 
-        return listaPaises;
+        return listaResultados;
     }
 
 
     @Override
     public List<PaisEntity> listAll() throws OnlineTestException {
-        var listaPaises = new ArrayList<PaisEntity>();
+
+        var listaResultados = new ArrayList<PaisEntity>();
         var sentenciaSQL = new StringBuilder();
 
-        sentenciaSQL.append("SELECT id, nombre FROM Pais");
+        sentenciaSQL.append("SELECT id, nombre FROM Pais ORDER BY nombre ASC");
 
 
         try (
+                Connection conexion = dataSource.getConnection();
                 var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString());
                 var cursorResultados = sentenciaPreparada.executeQuery()
         ) {
             while (cursorResultados.next()) {
-                listaPaises.add(construirPaisDesdeResultado(cursorResultados));
+                var paisEntityRetorno = new PaisEntity(); // O usar null si prefieres retornar null si no se encuentra
+                paisEntityRetorno.setId(UtilUUID.convertirAUUID(cursorResultados.getString("id")));
+                paisEntityRetorno.setNombre(cursorResultados.getString("nombre"));
+
+                listaResultados.add(paisEntityRetorno);
             }
 
         } catch (SQLException exception) {
@@ -151,7 +161,7 @@ public class PaisPostgreSQLDAO implements PaisDAO {
             throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico, exception);
         }
 
-        return listaPaises;
+        return listaResultados;
     }
 
 
@@ -162,26 +172,17 @@ public class PaisPostgreSQLDAO implements PaisDAO {
         var sentenciaSQL = new StringBuilder();
         sentenciaSQL.append("SELECT id, nombre FROM Pais WHERE id=?");
 
-        try (var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
+        try (Connection conexion = dataSource.getConnection();
+                var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
 
             sentenciaPreparada.setObject(1, id);
 
             try (var cursorResultados = sentenciaPreparada.executeQuery()) {
-                boolean encontrado = false;
-
-                while (cursorResultados.next()) {
-                    if (!encontrado) {
+                    if (cursorResultados.next()) {
                         paisEntityRetorno.setId(UtilUUID.convertirAUUID(cursorResultados.getString("id")));
                         paisEntityRetorno.setNombre(cursorResultados.getString("nombre"));
-                        encontrado = true;
-                    } else {
-                        // Si se encuentra más de un país con el mismo ID, puede lanzarse una excepción
-                        var mensajeUsuario = "Se encontró un problema con la información del país solicitado...";
-                        var mensajeTecnico = "Se encontraron múltiples países con el mismo ID, lo cual es inválido...";
-                        throw DataOnlineTestException.reportar(mensajeUsuario, mensajeTecnico);
                     }
                 }
-            }
 
         } catch (SQLException exception) {
             var mensajeUsuario = "Se ha presentado un problema tratando de consultar la información del país con el identificador deseado...";
@@ -206,7 +207,7 @@ public class PaisPostgreSQLDAO implements PaisDAO {
         sentenciaSQL.append("UPDATE pais SET nombre = ? WHERE id = ?");
 
         try (
-
+            Connection conexion = dataSource.getConnection();
             var sentenciaPreparada = conexion.prepareStatement(sentenciaSQL.toString())) {
 
             sentenciaPreparada.setString(1, entity.getNombre());
@@ -235,9 +236,5 @@ public class PaisPostgreSQLDAO implements PaisDAO {
         return pais;
     }
 
-
-    private boolean esCadenaValida(String cadena) {
-        return cadena != null && !cadena.isBlank();
-    }
 }
 

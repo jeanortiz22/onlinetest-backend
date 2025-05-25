@@ -7,14 +7,26 @@ import co.edu.uco.onlinetest.data.dao.entity.departamento.DepartamentoDAO;
 import co.edu.uco.onlinetest.data.dao.entity.pais.PaisDAO;
 import co.edu.uco.onlinetest.data.dao.factory.postgresql.PostgreSQLDAOFactory;
 
+import javax.sql.DataSource;
+
 public abstract class DAOFactory {
+
+    private static DataSource dataSource;
+
+    public static void setDataSource(DataSource ds) {
+        dataSource = ds;
+    }
 
     public static DAOFactory getFactory(Factory factory) throws OnlineTestException {
 
         switch (factory) {
             case POSTGRE_SQL:
-                return new PostgreSQLDAOFactory() {
-                };
+                if (dataSource == null) {
+                    throw DataOnlineTestException.reportar(
+                            "No se ha configurado una fuente de datos para la fábrica de DAOs",
+                            "La fuente de datos debe ser configurada antes de obtener una instancia de PostgreSQLDAOFactory");
+                }
+                    return new PostgreSQLDAOFactory(dataSource);
             default:
                 var mensajeUsuario = "Se ha presentado un problema tratando de obtener la información de la fuente de datos contra la cual se llevaran a cabo las operaciones...";
                 var mensajeTecnico = "Se solicito la factoria "+factory+" pero no se tiene implementada en el sistema...";

@@ -1,19 +1,24 @@
 package co.edu.uco.onlinetest;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 
-public class PruebaConexion {
+@Component
+public class PruebaConexion implements CommandLineRunner {
 
-    public static void main(String[] args) {
-        String url = "jdbc:postgresql://localhost:5432/onlinetest_db";
-        String usuario = "postgres";
-        String clave = "admin";
+    @Autowired
+    private DataSource dataSource;
 
-        try (Connection conexion = DriverManager.getConnection(url, usuario, clave)) {
-            System.out.println(" Conexión exitosa a la base de datos");
+    @Override
+    public void run(String... args) throws Exception {
+        try (Connection conexion = dataSource.getConnection()) {
+            System.out.println("✅ Conexión exitosa a la base de datos");
         } catch (Exception exception) {
-            System.out.println(" Error al conectar:");
+            System.out.println("❌ Error al conectar:");
             exception.printStackTrace();
         }
     }

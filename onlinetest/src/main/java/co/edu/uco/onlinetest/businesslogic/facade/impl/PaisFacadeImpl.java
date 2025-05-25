@@ -1,6 +1,6 @@
 package co.edu.uco.onlinetest.businesslogic.facade.impl;
 
-import co.edu.uco.onlinetest.businesslogic.assembler.PaisAssembler;
+import co.edu.uco.onlinetest.businesslogic.assembler.pais.dto.PaisDTOAssembler;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.PaisBusinessLogic;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.domain.PaisDomain;
 import co.edu.uco.onlinetest.businesslogic.bussinesslogic.impl.PaisBusinessLogicImpl;
@@ -10,20 +10,28 @@ import co.edu.uco.onlinetest.crosscutting.excepciones.OnlineTestException;
 import co.edu.uco.onlinetest.data.dao.factory.DAOFactory;
 import co.edu.uco.onlinetest.data.dao.factory.Factory;
 import co.edu.uco.onlinetest.dto.PaisDTO;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.UUID;
 
-public class
-PaisFacadeImpl implements PaisFacade {
+@Service
+public class PaisFacadeImpl implements PaisFacade {
 
+    private final DataSource dataSource;
     private DAOFactory daoFactory;
     private PaisBusinessLogic paisBusinessLogic;
 
-    public PaisFacadeImpl() throws OnlineTestException {
-        daoFactory = DAOFactory.getFactory(Factory.POSTGRE_SQL);
-        paisBusinessLogic = new PaisBusinessLogicImpl(daoFactory);
+    public PaisFacadeImpl(DataSource dataSource) throws OnlineTestException {
+        this.dataSource = dataSource;
+        try {
+            DAOFactory.setDataSource(dataSource);
+            daoFactory = DAOFactory.getFactory(Factory.POSTGRE_SQL);
+            this.paisBusinessLogic = new PaisBusinessLogicImpl(daoFactory);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Error inicializando DAOFactory en PaisFacadeImpl", exception);
+        }
     }
 
     @Override
@@ -34,7 +42,7 @@ PaisFacadeImpl implements PaisFacade {
             daoFactory.iniciarTransacion();
 
             // Convertir manualmente de DTO a Domain
-            PaisDomain paisDomain = PaisAssembler.toDomain(pais);
+            var paisDomain = PaisDTOAssembler.getInstance().toDomain(pais);
 
             paisBusinessLogic.registrarNuevoPais(paisDomain);
 
@@ -63,7 +71,7 @@ PaisFacadeImpl implements PaisFacade {
             daoFactory.iniciarTransacion();
 
             // Convertir manualmente de DTO a Domain
-            PaisDomain paisDomain = PaisAssembler.toDomain(pais);
+            var paisDomain = PaisDTOAssembler.getInstance().toDomain(pais);
 
             // Modificar el dominio
             paisBusinessLogic.modificarPaisExistente(id, paisDomain);
@@ -122,11 +130,8 @@ PaisFacadeImpl implements PaisFacade {
            //consultar el dominio
             PaisDomain paisDomainResultado = paisBusinessLogic.consultarPaisPorId(id);
 
-            if (paisDomainResultado == null) {
-                return null;
-            }
             // Convertir de Domain a DTO
-            PaisDTO paisDTOResultado = PaisAssembler.toDTO( paisDomainResultado);
+            var paisDTOResultado = PaisDTOAssembler.getInstance().toDTO(paisDomainResultado);
 
             daoFactory.confirmarTransacion();
 
@@ -155,21 +160,18 @@ PaisFacadeImpl implements PaisFacade {
             daoFactory.iniciarTransacion();
 
             // Convertir manualmente de DTO a Domain (para filtro)
-            PaisDomain filtroDomain = PaisAssembler.toDomain(filtro);
+            var filtroDomain = PaisDTOAssembler.getInstance().toDomain(filtro);
 
             // Consultar la lista de dominios
-            List<PaisDomain> dominios = paisBusinessLogic.consultarPaises(filtroDomain);
+            var dominios = paisBusinessLogic.consultarPaises(filtroDomain);
 
-            // Convertir manualmente lista de Domain a lista de DTO
-            List<PaisDTO> dtos = new ArrayList<>();
-            if (dominios != null) {
-                    for (PaisDomain domain : dominios) {
-                        dtos.add(PaisAssembler.toDTO(domain));
-                    }
-            }
+            var dominiosResultado = PaisDTOAssembler.getInstance().toDTO(dominios);
+
+
             daoFactory.confirmarTransacion();
 
-            return dtos;
+            return dominiosResultado;
+
 
         } catch (OnlineTestException exception) {
             daoFactory.cancelarTransacion();
